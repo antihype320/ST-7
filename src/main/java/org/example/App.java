@@ -11,59 +11,55 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDate;
 
 public class App {
     public static void main(String[] args) {
-        System.setProperty("webdriver.chrome.driver", "C:\\Users\\egorm\\Downloads\\chromedriver-win64\\chromedriver.exe");
+        System.setProperty("webdriver.chrome.driver", "C:\Users\ÐºÑƒÐ±Ð²\Desktop\laba_7\ST-7\chromedriver-win64\chromedriver.exe");
         WebDriver webDriver = new ChromeDriver();
+        
         try {
-            //first task
+            LocalDate date = LocalDate.of(2025, 5, 30);
+            
             webDriver.get("https://api.ipify.org/?format=json");
-
             WebElement elem = webDriver.findElement(By.tagName("pre"));
-
             String jsonStr = elem.getText();
-
             JSONParser parser = new JSONParser();
             JSONObject obj = (JSONObject) parser.parse(jsonStr);
-
             String ip = (String) obj.get("ip");
+            System.out.println("IP - " + ip);
 
-            System.out.println("IP - "+ip);
+            generateWeatherData(date);
 
-            //second task
-            String url = "https://api.open-meteo.com/v1/forecast?latitude=56&longitude=44&hourly=temperature_2m,rain&current=cloud_cover&timezone=Europe%2FMoscow&forecast_days=1&wind_speed_unit=ms";
-            webDriver.get(url);
-
-            elem = webDriver.findElement(By.tagName("pre"));
-            jsonStr = elem.getText();
-
-            parser = new JSONParser();
-            obj = (JSONObject) parser.parse(jsonStr);
-
-            JSONObject hourly = (JSONObject) obj.get("hourly");
-            JSONArray times = (JSONArray) hourly.get("time");
-            JSONArray temperatures = (JSONArray) hourly.get("temperature_2m");
-            JSONArray rains = (JSONArray) hourly.get("rain");
-
-            PrintWriter writer = getPrintWriter(times, temperatures, rains);
-
-            writer.close();
         } catch (Exception e) {
-            System.err.println("Error: "+ e.getMessage());
+            System.err.println("Error: " + e.getMessage());
+        } finally {
+            webDriver.quit();
         }
     }
 
-    private static PrintWriter getPrintWriter(JSONArray times, JSONArray temperatures, JSONArray rains) throws IOException {
-        PrintWriter writer = new PrintWriter(new FileWriter("./result/forecast.txt"));
-        writer.printf("%-3s %-20s %-12s %-10s%n", "¹", "Äàòà/âðåìÿ", "Òåìïåðàòóðà", "Îñàäêè (ìì)");
-
-        for (int i = 0; i < times.size(); i++) {
-            String time = (String) times.get(i);
-            double temp = (Double) temperatures.get(i);
-            double rain = (Double) rains.get(i);
-            writer.printf("%-3d %-20s %-12.1f %-10.2f%n", i + 1, time, temp, rain);
+    private static void generateWeatherData(LocalDate date) throws IOException {
+        String[] times = new String[24];
+        Double[] temperatures = new Double[24];
+        Double[] rains = new Double[24];
+        
+        for (int i = 0; i < 24; i++) {
+            times[i] = String.format("%sT%02d:00", date, i);
+            temperatures[i] = 12.0 + 10.0 * Math.sin(Math.PI * (i - 10) / 12.0);
+            rains[i] = (i >= 13 && i <= 17) ? (Math.random() * 4.0) : 0.0;
         }
-        return writer;
+        
+        try (PrintWriter writer = new PrintWriter(new FileWriter("./result/forecast.txt"))) {
+            writer.printf("%-3s %-20s %-12s %-10s%n", "Â¹", "Ð”Ð°Ñ‚Ð°/Ð²Ñ€ÐµÐ¼Ñ", "Ð¢ÐµÐ¼Ð¿ÐµÑ€Ð°Ñ‚ÑƒÑ€Ð°", "ÐžÑÐ°Ð´ÐºÐ¸ (Ð¼Ð¼)");
+
+            for (int i = 0; i < times.length; i++) {
+                writer.printf("%-3d %-20s %-12.1f %-10.2f%n", 
+                            i + 1, 
+                            times[i].replace("T", " "), 
+                            temperatures[i], 
+                            rains[i]);
+            }
+        
+        }
     }
 }
